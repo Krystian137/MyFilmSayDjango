@@ -1,0 +1,203 @@
+{% from "bootstrap5/form.html" import render_form %}
+{% include "header.html" %}
+
+<!-- Page Header-->
+<header class="masthead" style="background-image: url('{{ movie.img_url if movie.img_url else url_for('static', filename='img/placeholder.jpg') }}'); position: relative;">
+  <div class="blur-overlay"></div>
+  <div class="container position-relative px-4 px-lg-5" style="z-index: 1;">
+    <div class="row gx-4 gx-lg-5 justify-content-center">
+      <div class="col-md-10 col-lg-8 col-xl-7">
+        <div class="custom-post-heading">
+          <div class="image-container">
+            <img src="{{ movie.img_url if movie.img_url else url_for('static', filename='img/placeholder.jpg') }}" alt="{{ movie.title }}" class="custom-movie-poster">
+          </div>
+          <div class="custom-text-content">
+            <h1>{{ movie.title + ' (' + movie.date + ')' }}</h1>
+            <div class="progress-circle" data-percentage="{{ movie.rating * 10 }}">
+                <svg class="progress-circle__svg" viewBox="0 0 36 36">
+                    <path class="progress-circle__background" d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path class="progress-circle__progress" d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <text class="progress-circle__text" x="18" y="20.35">{{ movie.rating }}</text>
+                </svg>
+            </div>
+            <p><strong>Genres:</strong> {{ movie.genres }}</p>
+            <p><strong>Director:</strong> {{ movie.director }}</p>
+            <p><strong>Writers:</strong> {{ movie.writers }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+
+<!-- Movie Content -->
+<article>
+  <div class="container px-4 px-lg-5">
+    <div class="row gx-4 gx-lg-5 justify-content-center">
+      <div class="col-md-10 col-lg-8 col-xl-7">
+        <h1>Overview</h1>
+        {{ movie.body|safe }}
+        <!--Only show Edit Movie button if user id is 1 (admin user) -->
+        {% if current_user.id == 1 %}
+        <div class="d-flex justify-content-end mb-4">
+          <a class="btn btn-primary" href="{{ url_for('main.edit_movie', movie_id=movie.id) }}">Edit Post</a>
+        </div>
+        {% endif %}
+
+        <!-- Comments Area -->
+        <!-- Load the CKEditor -->
+        {{ ckeditor.load() }}
+        <!-- Configure it with the name of the form field from CommentForm -->
+        {{ ckeditor.config(name='comment_text') }}
+        <!-- Create the wtf quick form from CommentForm -->
+        {{ render_form(form, novalidate=True, button_map={"submit": "primary"}) }}
+        <div class="comment">
+            <ul class="commentList list-unstyled" id="commentList">
+                {% for comment in comments %}
+                <li class="media my-4 comment-box" id="comment-{{ comment.id }}">
+                    <div class="commenterImage">
+                        <a href="{{ url_for('main.user_profile', user_id=comment.comment_author.id) }}">
+                            <img src="{{ comment.comment_author.email | gravatar }}" />
+                        </a>
+                    </div>
+                    <div class="media-body commentText">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mt-0 mb-1">
+                                    <a href="{{ url_for('main.user_profile', user_id=comment.comment_author.id) }}">{{ comment.comment_author.name }}</a>
+                                    <small class="text-muted ml-2">{{ comment.timestamp }}</small>
+                                </h5>
+                                <div class="d-flex align-items-center" style="gap: 5px;">
+                                    <span style="color: gold; font-size: 1.2em;">{{ comment.user_rating }}</span>
+                                    <span>
+                                        {% for i in range(1, 11) %}
+                                            {% if i <= (comment.user_rating or 0) %}
+                                                &#9733;
+                                            {% else %}
+                                                &#9734;
+                                            {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="comment" data-comment-id="comment-{{ comment.id }}">
+                                {% if current_user.is_authenticated %}
+                                    <button type="button"
+                                            class="btn btn-outline-success btn-sm mx-1 vote-button"
+                                            data-comment-id="comment-{{ comment.id }}"
+                                            data-vote-type="like">
+                                        Like ({{ comment.likes_count or 0 }})
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-outline-danger btn-sm mx-1 vote-button"
+                                            data-comment-id="comment-{{ comment.id }}"
+                                            data-vote-type="dislike">
+                                        Dislike ({{ comment.dislikes_count or 0 }})
+                                    </button>
+                                {% else %}
+                                    <a href="{{ url_for('main.login') }}" class="btn btn-outline-success btn-sm mx-1">
+                                        Like ({{ comment.likes_count or 0 }})
+                                    </a>
+                                    <a href="{{ url_for('main.login') }}" class="btn btn-outline-danger btn-sm mx-1">
+                                        Dislike ({{ comment.dislikes_count or 0 }})
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <p>{{ comment.text|safe }}</p>
+                        {% if current_user.is_authenticated %}
+                            <a href="#" class="btn btn-primary btn-sm reply-comment" data-comment-id="{{ comment.id }}">Reply</a>
+                        {% else %}
+                            <a href="{{ url_for('main.login') }}" class="btn btn-primary btn-sm">Reply</a>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('main.reply_comment', comment_id=comment.id) }}" class="reply-form mt-3" style="display: none;">
+                            {{ reply_form.hidden_tag() }}
+                            <div class="form-group">
+                                {{ reply_form.reply_text.label(class="form-label") }}
+                                {{ reply_form.reply_text(class_="form-control", rows=3) }}
+                            </div>
+                            {{ reply_form.submit(class_="btn btn-primary") }}
+                        </form>
+                        {% if current_user.is_authenticated and (current_user.is_admin() or current_user.is_moderator() or current_user.id == comment.author_id) %}
+                            <a href="#" class="btn btn-danger btn-sm delete-comment" data-comment-id="{{ comment.id }}">Delete</a>
+                        {% endif %}
+                        {% if comment.replies %}
+                        <ul class="list-unstyled ml-4">
+                            {% for reply in comment.replies %}
+                            <li class="media my-4 reply" data-reply-id="{{ reply.id }}">
+                                <div class="commenterImage">
+                                    <a href="{{ url_for('main.user_profile', user_id=reply.author.id) }}">
+                                        <img src="{{ reply.author.email | gravatar }}" alt="User image">
+                                    </a>
+                                </div>
+                                <div class="media-body commentText">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h5 class="mt-0 mb-1">
+                                                <a href="{{ url_for('main.user_profile', user_id=reply.author.id) }}">{{ reply.author.name }}</a>
+                                                <small class="text-muted ml-2">{{ reply.timestamp }}</small>
+                                            </h5>
+                                            {% if reply.parent_reply %}
+                                            <p class="text-muted">Replying to <a href="{{ url_for('main.user_profile',
+                                            user_id=reply.parent_reply.author.id) }}">{{ reply.parent_reply.author.name }}</a></p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="reply" data-comment-id="reply-{{ reply.id }}">
+                                            {% if current_user.is_authenticated %}
+                                                <button type="button"
+                                                        class="btn btn-outline-success btn-sm mx-1 vote-button"
+                                                        data-comment-id="reply-{{ reply.id }}"
+                                                        data-vote-type="like">
+                                                    Like ({{ reply.likes_count or 0 }})
+                                                </button>
+                                                <button type="button"
+                                                        class="btn btn-outline-danger btn-sm mx-1 vote-button"
+                                                        data-comment-id="reply-{{ reply.id }}"
+                                                        data-vote-type="dislike">
+                                                    Dislike ({{ reply.dislikes_count or 0 }})
+                                                </button>
+                                            {% else %}
+                                                <a href="{{ url_for('main.login', next=request.path) }}" class="btn btn-outline-success btn-sm mx-1">
+                                                    Like ({{ reply.likes_count or 0 }})
+                                                </a>
+                                                <a href="{{ url_for('main.login', next=request.path) }}" class="btn btn-outline-danger btn-sm mx-1">
+                                                    Dislike ({{ reply.dislikes_count or 0 }})
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <p>{{ reply.reply_text|safe }}</p>
+                                    <a href="#" class="btn btn-primary btn-sm reply-comment" data-comment-id="{{ reply.id }}">Reply</a>
+                                    <form method="POST" action="{{ url_for('main.reply_comment', comment_id=reply.comment_id) }}" class="reply-form mt-3" style="display: none;">
+                                        {{ reply_form.hidden_tag() }}
+                                        <input type="hidden" name="parent_reply_id" value="{{ reply.id }}">
+                                        <div class="form-group">
+                                            {{ reply_form.reply_text.label(class="form-label") }}
+                                            {{ reply_form.reply_text(class_="form-control", rows=3) }}
+                                        </div>
+                                        {{ reply_form.submit(class_="btn btn-primary") }}
+                                    </form>
+                                    {% if current_user.is_authenticated and (current_user.is_admin() or current_user.is_moderator() or current_user.id == comment.author_id) %}
+                                        <a href="#" class="btn btn-danger btn-sm delete-reply" data-reply-id="{{ reply.id }}">Delete</a>
+                                    {% endif %}
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+
+{% include "footer.html" %}

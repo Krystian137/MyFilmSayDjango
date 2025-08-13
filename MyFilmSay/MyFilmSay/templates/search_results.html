@@ -1,0 +1,51 @@
+{% include "header.html" %}
+
+<header
+  class="masthead"
+  style="background-image: url('https://wallpapers.com/images/featured/movie-9pvmdtvz4cb0xl37.jpg')"
+>
+  <div class="container position-relative px-4 px-lg-5">
+    <div class="row gx-4 gx-lg-5 justify-content-center">
+      <div class="col-md-10 col-lg-8 col-xl-7">
+        <div class="site-heading">
+          <h1>Movie Player</h1>
+          <span class="subheading">A collection of latest movies!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+{% block content %}
+<div class="container">
+  {% for movie in search_results %}
+  <!-- Wyświetl filmy z wyników wyszukiwania -->
+  <div class="card">
+    <div class="front" style="background-image: url('{{movie.img_url}}');">
+      <p class="large">{{ movie.ranking }}</p>
+    </div>
+    <div class="back">
+      <div>
+        <div class="title">
+          {{movie.title}} <span class="release_date">({{movie.year}})</span>
+        </div>
+        <div class="rating">
+          <label>{{movie.rating}}</label>
+          <i class="fas fa-star star"></i>
+        </div>
+        <p class="overview">{{movie.date}}</p>
+
+        <a href="{{url_for('edit_movie', movie_id=movie.id)}}" class="button">Update</a>
+        <a href="{{url_for('delete_movie', movie_id=movie.id) }}" class="button delete-button">Delete</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% if current_user.id == 1: %}
+<div class="d-flex justify-content-end mb-4">
+  <a class="btn btn-primary float-right" href="{{url_for('add_new_movie')}}">Add New Movie</a>
+</div>
+{% endif %}
+{% endblock %}
+
