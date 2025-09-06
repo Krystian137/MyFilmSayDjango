@@ -1,6 +1,5 @@
 import django
 import os
-from mongoengine import connect
 from werkzeug.security import generate_password_hash
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "demo.settings")
