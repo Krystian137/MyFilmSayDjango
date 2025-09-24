@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
 
 # === ROLE ENUM ===
@@ -24,28 +25,30 @@ class Movie(models.Model):
         return self.title
 
 
-# === USER ===
-class User(models.Model):
+class MyUserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save()
+        return user
+
+    def create_superuser(self, email, password, **extra_fields):
+        extra_fields.setdefault('role', RoleEnum.ADMIN)
+        user = self.create_user(email, password, **extra_fields)
+        user.is_staff = True
+        user.is_superuser = True
+        user.save()
+        return user
+
+class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=128)
     name = models.CharField(max_length=255)
-    role = models.CharField(
-        max_length=20,
-        choices=RoleEnum.choices,
-        default=RoleEnum.USER,
-    )
+    role = models.CharField(max_length=20, choices=RoleEnum.choices, default=RoleEnum.USER)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
 
-    def is_admin(self):
-        return self.role == RoleEnum.ADMIN
-
-    def is_moderator(self):
-        return self.role == RoleEnum.MODERATOR
-
-    def is_user(self):
-        return self.role == RoleEnum.USER
-
-    def __str__(self):
-        return self.email
+    objects = MyUserManager()
+    USERNAME_FIELD = 'email'
 
 
 # === COMMENT ===
