@@ -19,7 +19,6 @@
 {% block content %}
 <div class="container">
   {% for movie in search_results %}
-  <!-- Wyświetl filmy z wyników wyszukiwania -->
   <div class="card">
     <div class="front" style="background-image: url('{{movie.img_url}}');">
       <p class="large">{{ movie.ranking }}</p>
@@ -35,16 +34,16 @@
         </div>
         <p class="overview">{{movie.date}}</p>
 
-        <a href="{{url_for('edit_movie', movie_id=movie.id)}}" class="button">Update</a>
-        <a href="{{url_for('delete_movie', movie_id=movie.id) }}" class="button delete-button">Delete</a>
+        <a href="{% url 'edit_movie' movie.id }}" class="button">Update</a>
+        <a href="{% url 'delete_movie' movie_id=movie.id %}" class="button delete-button">Delete</a>
       </div>
     </div>
   </div>
   {% endfor %}
 </div>
-{% if current_user.id == 1: %}
+{% if user.is_authenticated and user.role == "admin" or user.is_authenticated and user.role == "moderator" %}
 <div class="d-flex justify-content-end mb-4">
-  <a class="btn btn-primary float-right" href="{{url_for('add_new_movie')}}">Add New Movie</a>
+  <a class="btn btn-primary float-right" href="{% url 'add_new_movie' %}">Add New Movie</a>
 </div>
 {% endif %}
 {% endblock %}

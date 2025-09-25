@@ -18,7 +18,7 @@
     <div id="carouselExampleIndicators" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
         <div class="carousel-inner">
             {% for movie in random_movies %}
-            <div class="carousel-item {% if loop.first %}active{% endif %}">
+            <div class="carousel-item {% if forloop.first %}active{% endif %}">
                 <div class="container">
                     <div class="row align-items-center">
                         <div class="col-md-4 d-flex justify-content-center">
@@ -68,29 +68,29 @@
         </button>
             <ul class="dropdown-menu" aria-labelledby="sortButton">
                 <li>
-                    <a class="dropdown-item" href="{% url 'get_all_movies' %}?sort_by='title' ">
+                    <a class="dropdown-item" href="{% url 'get_all_movies' %}?sort_by=title ">
                         Title
                     </a>
                 </li>
                 <li>
-                    <a class="dropdown-item" href="{% url 'get_all_movies' %}?sort_by='rating' ">
+                    <a class="dropdown-item" href="{% url 'get_all_movies' %}?sort_by=rating ">
                         Rating
                     </a>
                 </li>
                 <li>
-                    <a class="dropdown-item" href="{% url 'get_all_movies'  %}&sort_by='date' ">
+                    <a class="dropdown-item" href="{% url 'get_all_movies'  %}&sort_by=date ">
                         Date
                     </a>
                 </li>
             </ul>
-    {% if current_user.is_authenticated and current_user.is_admin or current_user.is_moderator %}
-    <a class="btn btn-primary ms-auto" href="{% url 'add_new_movie' %}">Add New Movie</a>
+    {% if user.is_authenticated and user.role == "admin" or user.is_authenticated and user.role == "moderator" %}
+        <a class="btn btn-primary ms-auto" href="{% url 'add_new_movie' %}">Add New Movie</a>
     {% endif %}
     </div>
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3 justify-content-center">
         {% for movie in all_movies %}
         <div class="col">
-            <a href="{{ url 'show_movie', movie_id=movie.id %}" class="text-decoration-none">
+            <a href="{% url 'show_movie' movie_id=movie.id %}" class="text-decoration-none">
                 <div class="card">
                     <div class="front" style="background-image: url('{% if movie.img_url %} {{ movie.img_url }} {% else %}
                      {% static 'img/placeholder.jpg' %} {% endif %}');">
@@ -106,8 +106,8 @@
                                 <i class="fas fa-star star"></i>
                             </div>
                             <p class="overview">{{ movie.date }}</p>
-                            {% if current_user.is_authenticated and current_user.is_admin or current_user.is_moderator %}
-                            <a href="{{ url 'edit_movie' movie_id=movie.id %}" class="btn btn-success btn-sm">Update</a>
+                            {% if user.is_authenticated and user.role == "admin" or user.is_authenticated and user.role == "moderator" %}
+                            <a href="{% url 'edit_movie' movie_id=movie.id %}" class="btn btn-success btn-sm">Update</a>
                             <a href="{% url 'delete_movie' movie_id=movie.id %}" class="btn btn-danger btn-sm">Delete</a>
                             {% endif %}
                         </div>

@@ -50,6 +50,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = MyUserManager()
     USERNAME_FIELD = 'email'
 
+    @property
+    def is_admin(self):
+        return self.role == RoleEnum.ADMIN
+
+    @property
+    def is_moderator(self):
+        return self.role == RoleEnum.MODERATOR
+
+    @property
+    def is_user(self):
+        return self.role == RoleEnum.USER
+
 
 # === COMMENT ===
 class Comment(models.Model):

@@ -10,60 +10,59 @@
       <div class="col-md-10 col-lg-8 col-xl-7">
         <div class="site-heading">
           <h1>Users</h1>
-          <span class="subheading">All users profiles</span>
+          <span class="subheading">All user profiles</span>
         </div>
       </div>
     </div>
   </div>
 </header>
 
-{%block content %}
-<div class="users_container">
-{% for user in all_users %}
-<div class="user_card" style="width: 18rem;">
-  <div class="commenterImageProfiles">
-    <img src="{{ user.email | gravatar }}"/>
-  </div>
-  <div class="card-body">
-    <h5 class="card-title">{{ user.name }}</h5>
-    <p class="card-text">{{ user.role }}</p>
-    <p class="card-text">{{ user.email }}</p>
-    <a href="{{ url_for('main.user_profile', user_id=user.id) }}" class="btn btn-primary">See profile</a>
-    {% if current_user.is_authenticated and (current_user.is_admin() or current_user.is_moderator())
-    and current_user.id != user.id and (current_user.is_admin() or not user.is_admin()) %}
-    <div id="more_options" class="dropdown mt-2">
-      <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-        More Options
-      </button>
-            <ul class="dropdown-menu">
-              {% if current_user.is_authenticated and (current_user.is_admin()) %}
-                {% if not user.is_admin() %}
-                  <li>
-                      <a href="{{ url_for('main.assign_role', user_id=user.id, role='admin') }}" class="dropdown-item text-warning">Make Admin</a>
-                  </li>
-                {% endif %}
-              {% endif %}
-              {% if not user.is_moderator() %}
-              <li>
-                  <a href="{{ url_for('main.assign_role', user_id=user.id, role='moderator') }}" class="dropdown-item">Make Moderator</a>
-              </li>
-              {% endif %}
-              {% if not user.is_user() %}
-              <li>
-                  <a href="{{ url_for('main.assign_role', user_id=user.id, role='user') }}" class="dropdown-item">Revoke Role</a>
-              </li>
-              {% endif %}
-              <li>
-                  <a href="{{ url_for('main.delete_user', user_id=user.id) }}" class="dropdown-item text-danger">Delete User</a>
-              </li>
-          </ul>
-    </div>
-    {% endif %}
-  </div>
-</div>
-{% endfor %}
-</div>
+{% block content %}
+<div class="users_container d-flex flex-wrap gap-4 justify-content-center mt-4">
+  {% for u in all_users %}
+    <div class="card user_card" style="width: 18rem;">
+      <div class="commenterImageProfiles text-center mt-3">
+        <img src="https://ui-avatars.com/api/?name={{ u.name|urlencode }}&size=100&background=random&rounded=true"
+             class="rounded-circle" alt="{{ u.name }}" style="width: 100px; height: 100px;"/>
+      </div>
+      <div class="card-body text-center">
+        <h5 class="card-title">{{ u.name }}</h5>
+        <p class="card-text">{{ u.role }}</p>
+        <p class="card-text">{{ u.email }}</p>
+        <a href="{% url 'user_profile' user_id=u.id %}" class="btn btn-primary mb-2">See Profile</a>
 
+        {% if user.is_authenticated and user.id != u.id and user.is_admin or user.is_moderator %}
+        <div class="dropdown mt-2">
+          <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            More Options
+          </button>
+          <ul class="dropdown-menu">
+            {% if user.is_admin and not u.is_admin %}
+            <li>
+              <a href="{% url 'assign_role' user_id=u.id role='admin' %}" class="dropdown-item text-warning">Make Admin</a>
+            </li>
+            {% endif %}
+            {% if not u.is_moderator %}
+            <li>
+              <a href="{% url 'assign_role' user_id=u.id role='moderator' %}" class="dropdown-item">Make Moderator</a>
+            </li>
+            {% endif %}
+            {% if not u.is_user %}
+            <li>
+              <a href="{% url 'assign_role' user_id=u.id role='user' %}" class="dropdown-item">Revoke Role</a>
+            </li>
+            {% endif %}
+            <li>
+              <a href="{% url 'delete_user' user_id=u.id %}" class="dropdown-item text-danger">Delete User</a>
+            </li>
+          </ul>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
 {% endblock %}
 
 {% include "footer.html" %}
+
