@@ -15,7 +15,7 @@
 
 <div class="container justify-content-center align-items-center">
     <p>{{ message }}</p>
-    <a href="{{ url_for('main.get_all_movies') }}" class="btn btn-primary">Return to Home</a>
+    <a href="{% url 'get_all_movies' %}" class="btn btn-primary">Return to Home</a>
 </div>
 
 {% include "footer.html" %}

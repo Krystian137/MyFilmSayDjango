@@ -31,32 +31,40 @@
         <p class="card-text">{{ u.email }}</p>
         <a href="{% url 'user_profile' user_id=u.id %}" class="btn btn-primary mb-2">See Profile</a>
 
-        {% if user.is_authenticated and user.id != u.id and user.is_admin or user.is_moderator %}
-        <div class="dropdown mt-2">
-          <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            More Options
-          </button>
-          <ul class="dropdown-menu">
-            {% if user.is_admin and not u.is_admin %}
-            <li>
-              <a href="{% url 'assign_role' user_id=u.id role='admin' %}" class="dropdown-item text-warning">Make Admin</a>
-            </li>
-            {% endif %}
-            {% if not u.is_moderator %}
-            <li>
-              <a href="{% url 'assign_role' user_id=u.id role='moderator' %}" class="dropdown-item">Make Moderator</a>
-            </li>
-            {% endif %}
-            {% if not u.is_user %}
-            <li>
-              <a href="{% url 'assign_role' user_id=u.id role='user' %}" class="dropdown-item">Revoke Role</a>
-            </li>
-            {% endif %}
-            <li>
-              <a href="{% url 'delete_user' user_id=u.id %}" class="dropdown-item text-danger">Delete User</a>
-            </li>
-          </ul>
-        </div>
+        {% if user.is_authenticated and user.id != u.id and user.is_admin or user.is_moderator and not u.is_admin %}
+          <div class="dropdown mt-2">
+            <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              More Options
+            </button>
+            <ul class="dropdown-menu">
+
+              {# Tylko admin może promować do admina lub degradować admina #}
+              {% if user.is_admin and not u.is_admin %}
+                <li>
+                  <a href="{% url 'assign_role' user_id=u.id role='admin' %}" class="dropdown-item text-warning">Make Admin</a>
+                </li>
+              {% endif %}
+
+              {% if user.is_admin or user.is_moderator and not u.is_moderator and not u.is_admin %}
+                <li>
+                  <a href="{% url 'assign_role' user_id=u.id role='moderator' %}" class="dropdown-item">Make Moderator</a>
+                </li>
+              {% endif %}
+
+              {% if user.is_admin or user.is_moderator and not u.is_user and not u.is_admin %}
+                <li>
+                  <a href="{% url 'assign_role' user_id=u.id role='user' %}" class="dropdown-item">Revoke Role</a>
+                </li>
+              {% endif %}
+
+              {% if user.is_admin or user.is_moderator and not u.is_admin %}
+                <li>
+                  <a href="{% url 'delete_user' user_id=u.id %}" class="dropdown-item text-danger">Delete User</a>
+                </li>
+              {% endif %}
+
+            </ul>
+          </div>
         {% endif %}
       </div>
     </div>

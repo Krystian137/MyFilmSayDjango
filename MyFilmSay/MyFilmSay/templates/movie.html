@@ -1,21 +1,24 @@
-{% from "bootstrap5/form.html" import render_form %}
+{% load django_bootstrap5 %}
 {% include "header.html" %}
 {% load static %}
-{% load custom_filters %} {# filtr gravatar w utils.py lub custom_filters.py #}
 
-<header class="masthead" style="background-image: url('{{ movie.img_url|default_if_none:static('img/placeholder.jpg') }}');">
+<header class="masthead" style="background-image: url('{% if movie.img_url %}{{ movie.img_url }}{% else %}
+    {% static 'img/placeholder.jpg' %}{% endif %}');">
   <div class="blur-overlay"></div>
   <div class="container position-relative px-4 px-lg-5" style="z-index: 1;">
     <div class="row gx-4 gx-lg-5 justify-content-center">
       <div class="col-md-10 col-lg-8 col-xl-7">
         <div class="custom-post-heading">
           <div class="image-container">
-            <img src="{{ movie.img_url|default_if_none:static('img/placeholder.jpg') }}"
-                 alt="{{ movie.title }}" class="custom-movie-poster">
+            {% if movie.img_url %}
+              <img src="{{ movie.img_url }}" alt="{{ movie.title }}" class="custom-movie-poster">
+            {% else %}
+              <img src="{% static 'img/placeholder.jpg' %}" alt="{{ movie.title }}" class="custom-movie-poster">
+            {% endif %}
           </div>
           <div class="custom-text-content">
             <h1>{{ movie.title }} ({{ movie.date }})</h1>
-            <div class="progress-circle" data-percentage="{{ movie.rating|floatformat:1|float * 10 }}">
+            <div class="progress-circle" data-percentage="{{ rating_percentage|floatformat:1 }}">
                 <svg class="progress-circle__svg" viewBox="0 0 36 36">
                     <path class="progress-circle__background" d="M18 2.0845
                         a 15.9155 15.9155 0 0 1 0 31.831
@@ -42,7 +45,7 @@
       <div class="col-md-10 col-lg-8 col-xl-7">
         <h1>Overview</h1>
         {{ movie.body|safe }}
-        {% if user.is_authenticated and user.role in ["admin", "moderator"] %}
+        {% if user.is_authenticated and user.role == "admin" or user.is_authenticated and user.role == "moderator" %}
         <div class="d-flex justify-content-end mb-4">
           <a class="btn btn-primary" href="{% url 'edit_movie' movie.id %}">Edit Post</a>
         </div>
@@ -59,9 +62,8 @@
                 {% for comment in comments %}
                 <li class="media my-4 comment-box" id="comment-{{ comment.id }}">
                     <div class="commenterImage">
-                        <a href="{% url 'user_profile' comment.author.id %}">
-                            <img src="{{ comment.author.email|get_gravatar:50 }}" />
-                        </a>
+                        <img src="https://ui-avatars.com/api/?name={{ comment.author.name|urlencode }}&size=50&background=random&rounded=true"
+                            class="rounded-circle" alt="{{ comment.author.name }}" style="width: 50px; height: 50px;" />
                     </div>
                     <div class="media-body commentText">
                         <div class="d-flex justify-content-between align-items-center">
@@ -73,7 +75,7 @@
                                 <div class="d-flex align-items-center" style="gap: 5px;">
                                     <span style="color: gold; font-size: 1.2em;">{{ comment.user_rating }}</span>
                                     <span>
-                                        {% for i in range(1, 11) %}
+                                        {% for i in star_range %}
                                             {% if i <= comment.user_rating|default:0 %}
                                                 &#9733;
                                             {% else %}
@@ -117,8 +119,10 @@
                             <button type="submit" class="btn btn-primary">Reply</button>
                         </form>
 
-                        {% if user.is_authenticated and (user.role in ["admin", "moderator"] or user.id == comment.author.id) %}
-                            <a href="{% url 'delete_comment' comment.id %}" class="btn btn-danger btn-sm delete-comment">Delete</a>
+                        {% if user.is_authenticated %}
+                            {% if user.role == "admin" or user.role == "moderator" or user.id == comment.author.id %}
+                                <a href="{% url 'delete_comment' comment.id %}" class="btn btn-danger btn-sm delete-comment">Delete</a>
+                            {% endif %}
                         {% endif %}
 
                         {% if comment.replies %}
@@ -127,7 +131,8 @@
                             <li class="media my-4 reply" data-reply-id="{{ reply.id }}">
                                 <div class="commenterImage">
                                     <a href="{% url 'user_profile' reply.author.id %}">
-                                        <img src="{{ reply.author.email|get_gravatar:50 }}" alt="User image">
+                                        <img src="https://ui-avatars.com/api/?name={{ comment.author.name|urlencode }}&size=50&background=random&rounded=true"
+                                        class="rounded-circle" alt="{{ comment.author.name }}" style="width: 50px; height: 50px;" />>
                                     </a>
                                 </div>
                                 <div class="media-body commentText">
@@ -175,8 +180,10 @@
                                         <button type="submit" class="btn btn-primary">Reply</button>
                                     </form>
 
-                                    {% if user.is_authenticated and (user.role in ["admin", "moderator"] or user.id == comment.author.id) %}
-                                        <a href="{% url 'delete_reply' reply.id %}" class="btn btn-danger btn-sm delete-reply">Delete</a>
+                                    {% if user.is_authenticated %}
+                                        {% if user.role == "admin" or user.role == "moderator" or user.id == comment.author.id %}
+                                            <a href="{% url 'delete_reply' reply.id %}" class="btn btn-danger btn-sm delete-reply">Delete</a>
+                                        {% endif %}
                                     {% endif %}
                                 </div>
                             </li>
@@ -188,6 +195,7 @@
                 </li>
                 {% endfor %}
             </ul>
+            <a href="?offset={{ offset|add:5 }}">Load more</a>
         </div>
       </div>
     </div>

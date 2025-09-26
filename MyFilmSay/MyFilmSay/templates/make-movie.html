@@ -1,19 +1,19 @@
-{% from "bootstrap5/form.html" import render_form %}
-{% block content %}
+{% load static %}
+{% load django_bootstrap5 %}
 {% include "header.html" %}
 
-<!-- Page Header -->
+{% block content %}
 <header
   class="masthead"
-  style="background-image: url('../static/assets/img/edit-bg.jpg')"
+  style="background-image: url('{% static 'assets/img/edit-bg.jpg' %}')"
 >
   <div class="container position-relative px-4 px-lg-5">
     <div class="row gx-4 gx-lg-5 justify-content-center">
       <div class="col-md-10 col-lg-8 col-xl-7">
         <div class="page-heading">
-          {% if is_edit: %}
+          {% if is_edit %}
           <h1>Edit Movie</h1>
-          {% else: %}
+          {% else %}
           <h1>Add movie</h1>
           {% endif %}
         </div>
@@ -26,9 +26,11 @@
   <div class="container">
     <div class="row">
       <div class="col-lg-8 col-md-10 mx-auto">
-        {{ ckeditor.load() }}
-        {{ ckeditor.config(name='body') }}
-        {{ render_form(form, novalidate=True, button_map={"submit": "primary"}) }}
+        <form method="POST">
+          {% csrf_token %}
+          {% bootstrap_form form %}
+          <button type="submit" class="btn btn-primary mt-2">Add Movie</button>
+        </form>
       </div>
     </div>
   </div>

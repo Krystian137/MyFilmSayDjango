@@ -14,7 +14,7 @@ urlpatterns = [
     path('vote/', views.vote, name='vote'),
     path("movie/<int:movie_id>/comments/<int:offset>/", views.load_comments, name="load_comments"),
     path("new-movie/", views.add_new_movie, name="add_new_movie"),
-    path("find/", views.find_movie, name="find_movie"),
+    path('find/<int:movie_id>/', views.find_movie, name='find_movie'),
     path("edit-movie/<int:movie_id>/", views.edit_movie, name="edit_movie"),
     path("delete/<int:movie_id>", views.delete_movie, name="delete_movie"),
     path("users", views.users, name="users"),
@@ -23,5 +23,5 @@ urlpatterns = [
     path("delete_reply/<int:reply_id>", views.delete_reply, name="delete_reply"),
     path("about", views.about, name="about"),
     path("contact", views.contact, name="contact"),
-    path("error", views.error, name="error"),
+    path('error/<str:message>/', views.error, name='error_with_message'),
 ]

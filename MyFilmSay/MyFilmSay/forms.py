@@ -1,15 +1,14 @@
 from django import forms
 from django.core.validators import URLValidator, MinValueValidator, MaxValueValidator
+from .models import Movie
 
-class CreateMovieForm(forms.Form):
-    title = forms.CharField(label="Title", max_length=250, required=True)
-    img_url = forms.URLField(label="Movie Image URL", required=False, validators=[URLValidator()])
-    body = forms.CharField(label="Movie Content", widget=forms.Textarea, required=True)
-    date = forms.CharField(label="Date", max_length=250, required=True)
-    rating = forms.FloatField(label="Rating", required=True)
-    director = forms.CharField(label="Director", max_length=250, required=True)
-    writers = forms.CharField(label="Writers", max_length=250, required=True)
-    genres = forms.CharField(label="Genres", max_length=250, required=True)
+
+class CreateMovieForm(forms.ModelForm):
+    class Meta:
+        model = Movie
+        fields = [
+            "title", "img_url", "body", "date", "rating",
+            "director", "writers", "genres"]
 
 
 class RegisterForm(forms.Form):
