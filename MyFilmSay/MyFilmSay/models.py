@@ -100,8 +100,16 @@ class Vote(models.Model):
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="votes")
-    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name="votes")
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, null=True, blank=True, related_name="votes")
+    reply = models.ForeignKey(CommentReply, on_delete=models.CASCADE, null=True, blank=True, related_name="votes")
     vote_type = models.CharField(max_length=10, choices=VOTE_CHOICES)
 
     def __str__(self):
-        return f"{self.user.email} voted {self.vote_type} on {self.comment.id}"
+        target = self.comment or self.reply
+        return f"{self.user.email} voted {self.vote_type} on {target}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "comment"], name="unique_user_comment_vote"),
+            models.UniqueConstraint(fields=["user", "reply"], name="unique_user_reply_vote"),
+        ]

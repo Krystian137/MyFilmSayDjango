@@ -90,7 +90,7 @@ document.querySelectorAll('.vote-button').forEach(button => {
         const commentId = this.dataset.commentId;
         const voteType = this.dataset.voteType;
 
-        fetch('/vote', {
+        fetch('/vote/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
