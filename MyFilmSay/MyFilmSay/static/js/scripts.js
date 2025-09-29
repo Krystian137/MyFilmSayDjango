@@ -85,22 +85,44 @@ closeButtons.forEach(function(button) {
     });
 });
 
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 document.querySelectorAll('.vote-button').forEach(button => {
     button.addEventListener('click', function () {
         const commentId = this.dataset.commentId;
         const voteType = this.dataset.voteType;
+        const csrftoken = getCookie('csrftoken'); // ← dynamicznie tu!
 
         fetch('/vote/', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
             },
             body: JSON.stringify({
                 comment_id: commentId,
                 vote_type: voteType
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('CSRF or server error');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 const commentElement = this.closest('.comment, .reply');
@@ -113,9 +135,12 @@ document.querySelectorAll('.vote-button').forEach(button => {
                 alert(data.message);
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => {
+            console.error('Error:', error);
+        });
     });
 });
+
 
 document.addEventListener('DOMContentLoaded', function() {
     try {

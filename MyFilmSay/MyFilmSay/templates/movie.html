@@ -1,6 +1,9 @@
 {% load django_bootstrap5 %}
 {% include "header.html" %}
 {% load static %}
+<form style="display: none;">
+    {% csrf_token %}
+</form>
 
 <header class="masthead" style="background-image: url('{% if movie.img_url %}{{ movie.img_url }}{% else %}
     {% static 'img/placeholder.jpg' %}{% endif %}');">
