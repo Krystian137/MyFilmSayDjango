@@ -14,7 +14,7 @@
   </div>
 </header>
 
-<div class="carouselMain">
+<div class="carouselMain p-2">
     <div id="carouselExampleIndicators" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
         <div class="carousel-inner">
             {% for movie in random_movies %}
@@ -30,7 +30,7 @@
                             <p><strong>Rating:</strong> {{ movie.rating }}</p>
                             <p><strong>Release Date:</strong> {{ movie.date }}</p>
                             <p><strong>Genres:</strong> {{ movie.genres }}</p>
-                            <p>
+                            <p class="overview">
                                 <strong>Overview:</strong>
                                 {{ movie.body|truncatechars:250|safe }}
                                 {% if movie.body|length > 250 %}...{% endif %}
@@ -60,7 +60,7 @@
 
 
 {% block content %}
-<div class="container">
+<div class="container p-3">
     <h1>All movies</h1>
     <div class="sort-container d-flex mb-4">
         <button id="sortButton" class="btn btn-secondary me-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -92,24 +92,26 @@
         <div class="col">
             <a href="{% url 'show_movie' movie_id=movie.id %}" class="text-decoration-none">
                 <div class="card">
-                    <div class="front" style="background-image: url('{% if movie.img_url %} {{ movie.img_url }} {% else %}
-                     {% static 'img/placeholder.jpg' %} {% endif %}');">
-                        <p class="large">{{ movie.ranking }}</p>
-                    </div>
-                    <div class="back">
-                        <div>
-                            <div class="title">
-                                {{ movie.title }} <span class="release_date">({{ movie.year }})</span>
+                    <div class="card-inner">
+                        <div class="front" style="background-image: url('{% if movie.img_url %} {{ movie.img_url }} {% else %}
+                         {% static 'img/placeholder.jpg' %} {% endif %}');">
+                            <p class="large">{{ movie.ranking }}</p>
+                        </div>
+                        <div class="back">
+                            <div>
+                                <div class="title">
+                                    {{ movie.title }} <span class="release_date">({{ movie.year }})</span>
+                                </div>
+                                <div class="rating">
+                                    <label>{{ movie.rating }}</label>
+                                    <i class="fas fa-star star"></i>
+                                </div>
+                                <p class="overview">{{ movie.date }}</p>
+                                {% if user.is_authenticated and user.role == "admin" or user.is_authenticated and user.role == "moderator" %}
+                                <a href="{% url 'edit_movie' movie_id=movie.id %}" class="btn btn-success btn-sm">Update</a>
+                                <a href="{% url 'delete_movie' movie_id=movie.id %}" class="btn btn-danger btn-sm">Delete</a>
+                                {% endif %}
                             </div>
-                            <div class="rating">
-                                <label>{{ movie.rating }}</label>
-                                <i class="fas fa-star star"></i>
-                            </div>
-                            <p class="overview">{{ movie.date }}</p>
-                            {% if user.is_authenticated and user.role == "admin" or user.is_authenticated and user.role == "moderator" %}
-                            <a href="{% url 'edit_movie' movie_id=movie.id %}" class="btn btn-success btn-sm">Update</a>
-                            <a href="{% url 'delete_movie' movie_id=movie.id %}" class="btn btn-danger btn-sm">Delete</a>
-                            {% endif %}
                         </div>
                     </div>
                 </div>
