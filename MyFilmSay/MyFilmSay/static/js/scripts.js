@@ -2,11 +2,11 @@ document.addEventListener("DOMContentLoaded", function () {
     initializeReplyToggle();
     initializeVoteButtons();
     initializeDeleteButtons();
-    initializeLoadMore();
     initializeFlashMessages();
     initializeScrollListener();
     initializeProgressCircles();
     initializeSortMenu();
+    initializeLoadMore();
 });
 
 function initializeReplyToggle() {
@@ -113,7 +113,7 @@ function initializeDeleteButtons() {
     });
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+function initializeLoadMore() {
     const loadMoreBtn = document.getElementById("loadMoreBtn");
     if (loadMoreBtn) {
         loadMoreBtn.addEventListener("click", function () {
@@ -139,13 +139,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 })
                 .catch(error => console.error("Error loading comments:", error));
         });
-    } else {
-        console.error("loadMoreBtn not found");
     }
-});
+};
 
 
 function initializeFlashMessages() {
+    console.log("Flash messages initialized");
     setTimeout(function () {
         var flashMessages = document.querySelectorAll('.flash-messages .alert');
         flashMessages.forEach(function (message) {
