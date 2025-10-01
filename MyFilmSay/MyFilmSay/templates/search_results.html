@@ -1,15 +1,13 @@
 {% include "header.html" %}
+{% load static %}
 
-<header
-  class="masthead"
-  style="background-image: url('https://wallpapers.com/images/featured/movie-9pvmdtvz4cb0xl37.jpg')"
->
+<header class="masthead" style="background-image: url('{% static 'assets/img/bg_main_header.jpg' %}')" >
   <div class="container position-relative px-4 px-lg-5">
     <div class="row gx-4 gx-lg-5 justify-content-center">
       <div class="col-md-10 col-lg-8 col-xl-7">
         <div class="site-heading">
-          <h1>Movie Player</h1>
-          <span class="subheading">A collection of latest movies!</span>
+          <h1>Search Results</h1>
+          <span class="subheading">Results for: "{{ query }}"</span>
         </div>
       </div>
     </div>
@@ -17,34 +15,50 @@
 </header>
 
 {% block content %}
-<div class="container">
-  {% for movie in search_results %}
-  <div class="card">
-    <div class="front" style="background-image: url('{{movie.img_url}}');">
-      <p class="large">{{ movie.ranking }}</p>
-    </div>
-    <div class="back">
-      <div>
-        <div class="title">
-          {{movie.title}} <span class="release_date">({{movie.year}})</span>
-        </div>
-        <div class="rating">
-          <label>{{movie.rating}}</label>
-          <i class="fas fa-star star"></i>
-        </div>
-        <p class="overview">{{movie.date}}</p>
-
-        <a href="{% url 'edit_movie' movie.id }}" class="button">Update</a>
-        <a href="{% url 'delete_movie' movie_id=movie.id %}" class="button delete-button">Delete</a>
+<div class="container mt-5">
+  {% if search_results %}
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3 justify-content-center">
+      {% for movie in search_results %}
+      <div class="col">
+        <a href="{% url 'show_movie' movie_id=movie.id %}" class="text-decoration-none">
+          <div class="card">
+            <div class="front" style="background-image: url('{% if movie.img_url %}{{ movie.img_url }}{% else %}{% static 'img/placeholder.jpg' %}{% endif %}');">
+              <p class="large">{{ movie.ranking }}</p>
+            </div>
+            <div class="back">
+              <div>
+                <div class="title">
+                  {{ movie.title }} <span class="release_date">({{ movie.year }})</span>
+                </div>
+                <div class="rating">
+                  <label>{{ movie.rating }}</label>
+                  <i class="fas fa-star star"></i>
+                </div>
+                <p class="overview">{{ movie.date }}</p>
+                {% if user.is_authenticated and user.role == "admin" or user.is_authenticated and user.role == "moderator" %}
+                  <a href="{% url 'edit_movie' movie_id=movie.id %}" class="btn btn-success btn-sm">Update</a>
+                  <a href="{% url 'delete_movie' movie_id=movie.id %}" class="btn btn-danger btn-sm">Delete</a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </a>
       </div>
+      {% endfor %}
     </div>
+  {% else %}
+    <div class="text-center mt-5">
+      <h3>No results found for "{{ query }}"</h3>
+      <p>Try searching with a different keyword.</p>
+    </div>
+  {% endif %}
+
+  {% if user.is_authenticated and user.role == "admin" or user.is_authenticated and user.role == "moderator" %}
+  <div class="d-flex justify-content-end mt-4">
+    <a class="btn btn-primary" href="{% url 'add_new_movie' %}">Add New Movie</a>
   </div>
-  {% endfor %}
+  {% endif %}
 </div>
-{% if user.is_authenticated and user.role == "admin" or user.is_authenticated and user.role == "moderator" %}
-<div class="d-flex justify-content-end mb-4">
-  <a class="btn btn-primary float-right" href="{% url 'add_new_movie' %}">Add New Movie</a>
-</div>
-{% endif %}
 {% endblock %}
 
+{% include "footer.html" %}
