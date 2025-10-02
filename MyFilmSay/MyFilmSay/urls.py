@@ -22,6 +22,6 @@ urlpatterns = [
     path("delete_comment/<int:comment_id>", views.delete_comment, name="delete_comment"),
     path("delete_reply/<int:reply_id>", views.delete_reply, name="delete_reply"),
     path("about", views.about, name="about"),
-    path("contact", views.contact, name="contact"),
+    path("seo", views.seo, name="seo"),
     path('error/<str:message>/', views.error, name='error_with_message'),
 ]

@@ -1,0 +1,92 @@
+{% include "header.html" %}
+{% load static %}
+
+<header
+    class="masthead"
+    style="background-image: url('{% static 'assets/img/seo_banner.jpg' %}'); background-position: 50% 40%;"
+>
+    <div class="container position-relative px-4 px-lg-5">
+        <div class="row gx-4 gx-lg-5 justify-content-center">
+            <div class="col-md-10 col-lg-8 col-xl-7">
+                <div class="page-heading text-center text-white">
+                    <h1>Frequently Asked Questions</h1>
+                    <p class="lead">Find answers to common questions about our platform.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="mb-5">
+    <div class="container px-4 px-lg-5">
+        <div class="row gx-4 gx-lg-5 justify-content-center">
+            <div class="col-md-10 col-lg-8 col-xl-9">
+                <section class="faq-section">
+                    <div class="mb-4">
+                        <h2 class="h5">How do I create an account?</h2>
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam vel sapien eu erat tincidunt fermentum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h2 class="h5">Can I watch movies for free?</h2>
+                        <p>Yes, some movies are available for free. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur.</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h2 class="h5">How do I reset my password?</h2>
+                        <p>Click on "Forgot Password" at the login screen. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h2 class="h5">Is there a mobile app?</h2>
+                        <p>Yes, our app is available on iOS and Android. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam.</p>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
+    <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "How do I create an account?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Click on the Sign Up button and fill out the registration form."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I watch movies for free?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Some movies are free, others require a subscription."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How do I reset my password?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Click on 'Forgot Password' at the login screen and follow the instructions."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is there a mobile app?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, our app is available on iOS and Android."
+              }
+            }
+          ]
+        }
+    </script>
+</main>
+
+{% include "footer.html" %}
