@@ -3,60 +3,60 @@
 
 <!-- Page Header-->
 <header
-  class="masthead"
-  style="background-image: url('https://wallpapers.com/images/featured/movie-9pvmdtvz4cb0xl37.jpg')"
+    class="masthead"
+    style="background-image: url('https://wallpapers.com/images/featured/movie-9pvmdtvz4cb0xl37.jpg')"
 >
-  <div class="container position-relative px-4 px-lg-5">
-    <div class="row gx-4 gx-lg-5 justify-content-center">
-      <div class="col-md-10 col-lg-8 col-xl-7">
-        <div class="site-heading">
-          <h1>{{ user.name }}</h1>
-          <span class="subheading">{{ user.email }}</span>
-          <span class="subheading">{{ user.role }}</span>
+    <div class="container position-relative px-4 px-lg-5">
+        <div class="row gx-4 gx-lg-5 justify-content-center">
+            <div class="col-md-10 col-lg-8 col-xl-7">
+                <div class="site-heading">
+                    <h1>{{ user.name }}</h1>
+                    <span class="subheading">{{ user.email }}</span>
+                    <span class="subheading">{{ user.role }}</span>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 </header>
 
 {% block content %}
 {% for movie, data in user_comments.items %}
-  <div class="comment-container mx-auto w-75 w-md-50">
-    <div class="comment-title">
-      🎬 <a href="{% url 'show_movie' movie.id %}">{{ movie.title }}</a>
-    </div>
+    <div class="comment-container mx-auto w-75 w-md-50">
+        <div class="comment-title">
+            🎬 <a href="{% url 'show_movie' movie.id %}">{{ movie.title }}</a>
+        </div>
 
-    {% for comment in data.comments %}
-      <div class="comment-box" id="comment-{{ comment.id }}">
-        <div class="comment-text">{{ comment.text|safe }}</div>
-        {% if request.user.is_authenticated and request.user.is_admin or request.user.is_moderator or request.user.id == comment.author.id %}
-          <a href="#" class="btn btn-danger btn-sm delete-comment" data-comment-id="{{ comment.id }}">Delete</a>
+        {% for comment in data.comments %}
+            <div class="comment-box" id="comment-{{ comment.id }}">
+                <div class="comment-text">{{ comment.text|safe }}</div>
+                {% if request.user.is_authenticated and request.user.is_admin or request.user.is_moderator or request.user.id == comment.author.id %}
+                    <a href="#" class="btn btn-danger btn-sm delete-comment" data-comment-id="{{ comment.id }}">Delete</a>
+                {% endif %}
+
+                {% for reply in comment.replies %}
+                    <div class="reply-box" id="reply-{{ reply.id }}">
+                        <div class="reply-text">↳ {{ reply.reply_text|striptags }}</div>
+                        {% if request.user.is_authenticated and request.user.is_admin or request.user.is_moderator or request.user.id == reply.author.id %}
+                            <a href="#" class="btn btn-danger btn-sm delete-reply" data-reply-id="{{ reply.id }}">Delete</a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+
+        {% if not data.comments and data.replies %}
+            {% for reply_list in data.replies.values %}
+                {% for reply in reply_list %}
+                    <div class="reply-box" id="reply-{{ reply.comment.id }}-{{ reply.id }}">
+                        <div class="reply-text">↳ {{ reply.reply_text|striptags }}</div>
+                        {% if request.user.is_authenticated and request.user.is_admin or request.user.is_moderator or request.user.id == comment.author.id %}
+                            <a href="#" class="btn btn-danger btn-sm delete-reply" data-reply-id="{{ reply.id }}">Delete</a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% endfor %}
         {% endif %}
-
-        {% for reply in comment.replies %}
-          <div class="reply-box" id="reply-{{ reply.id }}">
-            <div class="reply-text">↳ {{ reply.reply_text|striptags }}</div>
-            {% if request.user.is_authenticated and request.user.is_admin or request.user.is_moderator or request.user.id == reply.author.id %}
-              <a href="#" class="btn btn-danger btn-sm delete-reply" data-reply-id="{{ reply.id }}">Delete</a>
-            {% endif %}
-          </div>
-        {% endfor %}
-      </div>
-    {% endfor %}
-
-    {% if not data.comments and data.replies %}
-      {% for reply_list in data.replies.values %}
-        {% for reply in reply_list %}
-          <div class="reply-box" id="reply-{{ reply.comment.id }}-{{ reply.id }}">
-            <div class="reply-text">↳ {{ reply.reply_text|striptags }}</div>
-            {% if request.user.is_authenticated and request.user.is_admin or request.user.is_moderator or request.user.id == comment.author.id %}
-              <a href="#" class="btn btn-danger btn-sm delete-reply" data-reply-id="{{ reply.id }}">Delete</a>
-            {% endif %}
-          </div>
-        {% endfor %}
-      {% endfor %}
-    {% endif %}
-  </div>
+    </div>
 {% endfor %}
 {% endblock %}
 

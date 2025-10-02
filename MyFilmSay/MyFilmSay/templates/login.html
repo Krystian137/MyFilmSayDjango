@@ -3,7 +3,6 @@
 {% block content %}
 {% include "header.html" %}
 
-<!-- Page Header -->
 <header
   class="masthead"
   style="background-image: url('{% static 'assets/img/login_banner.jpg' %}'); background-position: top;"
@@ -23,7 +22,6 @@
 <main class="mb-4">
   <div class="container">
     <div class="row">
-      <!-- Flash messages -->
       {% if messages %}
         {% for message in messages %}
           <p class="flash {{ message.tags }}">{{ message }}</p>
@@ -31,7 +29,6 @@
       {% endif %}
 
       <div class="col-lg-8 col-md-10 mx-auto">
-        <!-- Rendering login form -->
         <form method="post">
             {% csrf_token %}
             {% bootstrap_form form %}
