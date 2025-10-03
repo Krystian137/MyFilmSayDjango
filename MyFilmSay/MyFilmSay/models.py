@@ -3,14 +3,12 @@ from django.utils import timezone
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
 
-# === ROLE ENUM ===
 class RoleEnum(models.TextChoices):
     USER = "user", "User"
     MODERATOR = "moderator", "Moderator"
     ADMIN = "admin", "Admin"
 
 
-# === MOVIE ===
 class Movie(models.Model):
     title = models.CharField(max_length=250, unique=True)
     date = models.CharField(max_length=250)
@@ -63,7 +61,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.role == RoleEnum.USER
 
 
-# === COMMENT ===
 class Comment(models.Model):
     text = models.TextField()
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
@@ -78,7 +75,6 @@ class Comment(models.Model):
         return f"{self.author.name}: {self.text[:30]}"
 
 
-# === COMMENT REPLY ===
 class CommentReply(models.Model):
     comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name="replies_set")
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="child_replies")
@@ -92,7 +88,6 @@ class CommentReply(models.Model):
         return f"Reply by {self.author.name} to {self.comment.id}"
 
 
-# === VOTE ===
 class Vote(models.Model):
     VOTE_CHOICES = [
         ("like", "Like"),
