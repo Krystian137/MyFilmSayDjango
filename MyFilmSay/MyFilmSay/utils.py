@@ -1,18 +1,18 @@
-from django.core.exceptions import PermissionDenied
-from functools import wraps
+from django.shortcuts import redirect
+from django.urls import reverse
 
-def admin_only(view_func):
-    @wraps(view_func)
-    def _wrapped_view(request, *args, **kwargs):
-        if not request.user.is_authenticated or not request.user.is_admin():
-            raise PermissionDenied()
-        return view_func(request, *args, **kwargs)
-    return _wrapped_view
+def admin_only(function):
+    def wrap(request, *args, **kwargs):
+        if request.user.is_authenticated and request.user.is_admin:
+            return function(request, *args, **kwargs)
+        else:
+            return redirect(reverse('get_all_movies'))
+    return wrap
 
-def admin_or_moderator_only(view_func):
-    @wraps(view_func)
-    def _wrapped_view(request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_admin() or request.user.is_moderator()):
-            raise PermissionDenied()
-        return view_func(request, *args, **kwargs)
-    return _wrapped_view
+def admin_or_moderator_only(function):
+    def wrap(request, *args, **kwargs):
+        if request.user.is_authenticated and (request.user.is_admin or request.user.is_moderator):
+            return function(request, *args, **kwargs)
+        else:
+            return redirect(reverse('get_all_movies'))
+    return wrap

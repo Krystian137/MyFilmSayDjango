@@ -15,6 +15,15 @@ class RegisterForm(forms.Form):
     name = forms.CharField(label="Name", max_length=100, required=True)
     email = forms.EmailField(label="Email", required=True)
     password = forms.CharField(label="Password", widget=forms.PasswordInput, required=True)
+    password_confirm = forms.CharField(label="Confirm Password", widget=forms.PasswordInput, required=True)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        password_confirm = cleaned_data.get("password_confirm")
+
+        if password and password_confirm and password != password_confirm:
+            raise forms.ValidationError("Passwords do not match.")
 
 
 class LoginForm(forms.Form):
