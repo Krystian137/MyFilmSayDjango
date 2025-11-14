@@ -93,7 +93,6 @@
   transition: transform 0.3s ease;
 }
 
-
 .card:hover .back {
     transform: rotateY(0deg);
 }

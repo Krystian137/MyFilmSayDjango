@@ -50,7 +50,7 @@
                 {{ movie.body|safe }}
                 {% if user.is_authenticated and user.role == "admin" or user.is_authenticated and user.role == "moderator" %}
                 <div class="d-flex justify-content-end mb-4 mt-3">
-                    <a class="btn btn-primary" href="{% url 'edit_movie' movie.id %}">Edit Post</a>
+                    <a class="btn btn-primary" href="{% url 'edit_movie' movie.id %}">Edit Movie</a>
                 </div>
                 {% endif %}
 
