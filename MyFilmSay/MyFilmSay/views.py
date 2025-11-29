@@ -90,7 +90,6 @@ def login_view(request):
     return render(request, 'login.html', {'form': form})
 
 
-
 def assign_role(request, user_id, role):
     if not (request.user.is_admin or request.user.is_moderator):
         messages.error(request, "You do not have permission to assign role.")
