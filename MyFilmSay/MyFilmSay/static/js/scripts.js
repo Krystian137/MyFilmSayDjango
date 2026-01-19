@@ -239,3 +239,82 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+// Edit Comment
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('edit-comment-btn')) {
+        e.preventDefault();
+        const commentId = e.target.dataset.commentId;
+        document.querySelector(`.comment-display-${commentId}`).style.display = 'none';
+        document.querySelector(`.edit-form-${commentId}`).style.display = 'block';
+    }
+
+    if (e.target.classList.contains('cancel-edit-comment')) {
+        const commentId = e.target.dataset.commentId;
+        document.querySelector(`.comment-display-${commentId}`).style.display = 'block';
+        document.querySelector(`.edit-form-${commentId}`).style.display = 'none';
+    }
+
+    if (e.target.classList.contains('save-edit-comment')) {
+        const commentId = e.target.dataset.commentId;
+        const newText = document.querySelector(`.edit-form-${commentId} .edit-textarea`).value;
+
+        fetch(`/edit_comment/${commentId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ text: newText })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelector(`.comment-display-${commentId}`).innerHTML = newText;
+                document.querySelector(`.comment-display-${commentId}`).style.display = 'block';
+                document.querySelector(`.edit-form-${commentId}`).style.display = 'none';
+            } else {
+                alert(data.message || 'Failed to update comment');
+            }
+        })
+        .catch(err => console.error('Edit error:', err));
+    }
+
+    if (e.target.classList.contains('edit-reply-btn')) {
+        e.preventDefault();
+        const replyId = e.target.dataset.replyId;
+        document.querySelector(`.comment-display-${replyId}`).style.display = 'none';
+        document.querySelector(`.edit-form-${replyId}`).style.display = 'block';
+    }
+
+    if (e.target.classList.contains('cancel-edit-reply')) {
+        const replyId = e.target.dataset.replyId;
+        document.querySelector(`.comment-display-${replyId}`).style.display = 'block';
+        document.querySelector(`.edit-form-${replyId}`).style.display = 'none';
+    }
+
+    if (e.target.classList.contains('save-edit-reply')) {
+        const replyId = e.target.dataset.replyId;
+        const newText = document.querySelector(`.edit-form-${replyId} .edit-textarea`).value;
+
+        fetch(`/edit_reply/${replyId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ text: newText })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelector(`.comment-display-${replyId}`).innerHTML = newText;
+                document.querySelector(`.comment-display-${replyId}`).style.display = 'block';
+                document.querySelector(`.edit-form-${replyId}`).style.display = 'none';
+            } else {
+                alert(data.message || 'Failed to update reply');
+            }
+        })
+        .catch(err => console.error('Edit error:', err));
+    }
+});

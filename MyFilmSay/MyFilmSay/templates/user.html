@@ -1,7 +1,6 @@
 {% include "header.html" %}
 {% load static %}
 
-<!-- Page Header-->
 <header
     class="masthead"
     style="background-image: url('{% static 'assets/img/users_main_header.jpg' %}')"
@@ -10,9 +9,9 @@
         <div class="row gx-4 gx-lg-5 justify-content-center">
             <div class="col-md-10 col-lg-8 col-xl-7">
                 <div class="site-heading">
-                    <h1>{{ user.name }}</h1>
-                    <span class="subheading">{{ user.email }}</span>
-                    <span class="subheading">{{ user.role }}</span>
+                    <h1>{{ profile_owner.name }}</h1>
+                    <span class="subheading">{{ profile_owner.email }}</span>
+                    <span class="subheading">{{ profile_owner.role }}</span>
                 </div>
             </div>
         </div>
@@ -28,16 +27,45 @@
 
         {% for comment in data.comments %}
             <div class="comment-box" id="comment-{{ comment.id }}">
-                <div class="comment-text">{{ comment.text|safe }}</div>
-                {% if request.user.is_authenticated and request.user.is_admin or request.user.is_moderator or request.user.id == comment.author.id %}
-                    <a href="#" class="btn btn-danger btn-sm delete-comment" data-comment-id="{{ comment.id }}">Delete</a>
+                <div class="comment-text comment-display-{{ comment.id }}">{{ comment.text|safe }}</div>
+
+                <!-- Edit Form -->
+                <div class="edit-form-{{ comment.id }}" style="display: none;">
+                    <textarea class="form-control mb-2 edit-textarea" rows="3">{{ comment.text|striptags }}</textarea>
+                    <button class="btn btn-success btn-sm save-edit-comment" data-comment-id="{{ comment.id }}">Save</button>
+                    <button class="btn btn-secondary btn-sm cancel-edit-comment" data-comment-id="{{ comment.id }}">Cancel</button>
+                </div>
+
+                {% if user.is_authenticated %}
+                    {% if user.id == comment.author_id %}
+                        <button class="btn btn-warning btn-sm edit-comment-btn" data-comment-id="{{ comment.id }}">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    {% endif %}
+                    {% if user.is_admin or user.is_moderator or user.id == comment.author_id %}
+                        <button class="btn btn-danger btn-sm delete-comment" data-comment-id="{{ comment.id }}">Delete</button>
+                    {% endif %}
                 {% endif %}
 
                 {% for reply in comment.replies %}
                     <div class="reply-box" id="reply-{{ reply.id }}">
-                        <div class="reply-text">↳ {{ reply.reply_text|striptags }}</div>
-                        {% if request.user.is_authenticated and request.user.is_admin or request.user.is_moderator or request.user.id == reply.author.id %}
-                            <a href="#" class="btn btn-danger btn-sm delete-reply" data-reply-id="{{ reply.id }}">Delete</a>
+                        <div class="reply-text comment-display-{{ reply.id }}">↳ {{ reply.reply_text|striptags }}</div>
+
+                        <div class="edit-form-{{ reply.id }}" style="display: none;">
+                            <textarea class="form-control mb-2 edit-textarea" rows="2">{{ reply.reply_text|striptags }}</textarea>
+                            <button class="btn btn-success btn-sm save-edit-reply" data-reply-id="{{ reply.id }}">Save</button>
+                            <button class="btn btn-secondary btn-sm cancel-edit-reply" data-reply-id="{{ reply.id }}">Cancel</button>
+                        </div>
+
+                        {% if user.is_authenticated %}
+                            {% if user.id == reply.author_id %}
+                                <button class="btn btn-warning btn-sm edit-reply-btn" data-reply-id="{{ reply.id }}">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                            {% endif %}
+                            {% if user.is_admin or user.is_moderator or user.id == reply.author_id %}
+                                <button class="btn btn-danger btn-sm delete-comment" data-comment-id="{{ reply.id }}">Delete</button>
+                            {% endif %}
                         {% endif %}
                     </div>
                 {% endfor %}
@@ -47,10 +75,25 @@
         {% if not data.comments and data.replies %}
             {% for reply_list in data.replies.values %}
                 {% for reply in reply_list %}
-                    <div class="reply-box" id="reply-{{ reply.comment.id }}-{{ reply.id }}">
-                        <div class="reply-text">↳ {{ reply.reply_text|striptags }}</div>
-                        {% if request.user.is_authenticated and request.user.is_admin or request.user.is_moderator or request.user.id == comment.author.id %}
-                            <a href="#" class="btn btn-danger btn-sm delete-reply" data-reply-id="{{ reply.id }}">Delete</a>
+                    <div class="reply-box" id="reply-{{ reply.id }}">
+                        <div class="reply-text comment-display-{{ reply.id }}">↳ {{ reply.reply_text|striptags }}</div>
+
+                        <!-- Edit Form -->
+                        <div class="edit-form-{{ reply.id }}" style="display: none;">
+                            <textarea class="form-control mb-2 edit-textarea" rows="2">{{ reply.reply_text|striptags }}</textarea>
+                            <button class="btn btn-success btn-sm save-edit-reply" data-reply-id="{{ reply.id }}">Save</button>
+                            <button class="btn btn-secondary btn-sm cancel-edit-reply" data-reply-id="{{ reply.id }}">Cancel</button>
+                        </div>
+
+                        {% if user.is_authenticated %}
+                            {% if user.id == reply.author_id %}
+                                <button class="btn btn-warning btn-sm edit-reply-btn" data-reply-id="{{ reply.id }}">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                            {% endif %}
+                            {% if user.is_admin or user.is_moderator or user.id == reply.author_id %}
+                                <button class="btn btn-danger btn-sm delete-comment" data-comment-id="{{ reply.id }}">Delete</button>
+                            {% endif %}
                         {% endif %}
                     </div>
                 {% endfor %}

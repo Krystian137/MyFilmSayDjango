@@ -2,8 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from django.contrib.auth.hashers import make_password, check_password
-from django.db.models import Q
+from django.contrib.auth.hashers import make_password
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods, require_POST
 from .models import Movie, User, Comment, CommentReply, Vote, RoleEnum
@@ -16,7 +15,10 @@ import json
 from django.utils.http import urlencode
 import os
 from dotenv import load_dotenv
-from django.views.decorators.csrf import csrf_exempt
+from django.db import transaction
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -24,10 +26,12 @@ API_KEY = os.getenv("API_KEY_TMDb")
 API_URL = "https://api.themoviedb.org/3/search/movie"
 API_IMG_URL = "https://image.tmdb.org/t/p/w500"
 MOVIE_DB_INFO_URL = "https://api.themoviedb.org/3/movie"
+COMMENTS_PER_PAGE = 5
 
 
 def is_admin(user):
     return user.is_authenticated and user.role == 'admin'
+
 
 @login_required
 @admin_only
@@ -48,22 +52,23 @@ def register(request):
         form = RegisterForm(request.POST)
         if form.is_valid():
             email = form.cleaned_data['email']
-            if User.objects.filter(email=email).first():
+            if User.objects.filter(email=email).exists():
                 messages.warning(request, "You've already signed up with that email, log in instead!")
                 return redirect('login')
+
             password = form.cleaned_data['password']
             hashed_password = make_password(password)
-            new_user = User(
-                email=email,
-                name=form.cleaned_data['name'],
-                password=hashed_password,
-            )
-            new_user.save()
 
-            login(request, new_user)
+            with transaction.atomic():
+                new_user = User(
+                    email=email,
+                    name=form.cleaned_data['name'],
+                    password=hashed_password,
+                )
+                new_user.save()
+                login(request, new_user)
 
             messages.success(request, f"Welcome, {new_user.name}!")
-
             return redirect('get_all_movies')
     else:
         form = RegisterForm()
@@ -90,6 +95,7 @@ def login_view(request):
     return render(request, 'login.html', {'form': form})
 
 
+@login_required  # POPRAWKA: Dodano dekorator
 def assign_role(request, user_id, role):
     if not (request.user.is_admin or request.user.is_moderator):
         messages.error(request, "You do not have permission to assign role.")
@@ -106,8 +112,10 @@ def assign_role(request, user_id, role):
         messages.error(request, "You cannot assign the admin role to yourself.")
         return redirect(reverse('index'))
 
-    user.role = role
-    user.save()
+    with transaction.atomic():
+        user.role = role
+        user.save()
+
     messages.success(request, f"Role {role} assigned to {user.name}.")
     return redirect(reverse('users'))
 
@@ -121,7 +129,9 @@ def delete_user(request, user_id):
         messages.error(request, "You cannot delete your own account.")
         return redirect('users')
 
-    user.delete()
+    with transaction.atomic():
+        user.delete()
+
     messages.success(request, f"User {user.name} has been deleted.")
     return redirect('users')
 
@@ -164,7 +174,12 @@ def show_movie(request, movie_id):
 
     comment_form = CommentForm(request.POST or None)
     reply_form = ReplyForm()
-    comments = Comment.objects.filter(movie_id=movie.id).prefetch_related("replies_set").order_by('-id')[offset:offset+5]
+
+    comments = Comment.objects.filter(movie_id=movie.id) \
+                   .select_related('author') \
+                   .prefetch_related('replies_set__author') \
+                   .order_by('-id')[offset:offset + COMMENTS_PER_PAGE]
+
     total_comments = Comment.objects.filter(movie_id=movie.id).count()
     current_user_id = request.user.id if request.user.is_authenticated else None
 
@@ -180,13 +195,15 @@ def show_movie(request, movie_id):
             parent_id = comment_form.cleaned_data.get('parent_id')
             parent = Comment.objects.get(id=parent_id) if parent_id else None
 
-            Comment.objects.create(
-                text=comment_form.cleaned_data['comment_text'],
-                author=request.user,
-                movie=movie,
-                user_rating=comment_form.cleaned_data['user_rating'],
-                parent=parent
-            )
+            with transaction.atomic():
+                Comment.objects.create(
+                    text=comment_form.cleaned_data['comment_text'],
+                    author=request.user,
+                    movie=movie,
+                    user_rating=comment_form.cleaned_data['user_rating'],
+                    parent=parent
+                )
+
             messages.success(request, "Comment added successfully!")
             return redirect('show_movie', movie_id=movie_id)
         else:
@@ -213,25 +230,27 @@ def reply_comment(request, comment_id):
         reply_text = reply_form.cleaned_data['reply_text']
         parent_reply_id = request.POST.get("parent_reply_id")
 
-        if parent_reply_id:
-            parent_reply = get_object_or_404(CommentReply, id=parent_reply_id)
-            new_reply = CommentReply(
-                parent_id=parent_reply.id,
-                comment_id=parent_reply.comment.id,
-                reply_text=reply_text,
-                author=request.user,
-            )
-            movie_id = parent_reply.comment.movie.id
-        else:
-            comment = get_object_or_404(Comment, id=comment_id)
-            new_reply = CommentReply(
-                comment_id=comment.id,
-                reply_text=reply_text,
-                author=request.user,
-            )
-            movie_id = comment.movie.id
+        with transaction.atomic():
+            if parent_reply_id:
+                parent_reply = get_object_or_404(CommentReply, id=parent_reply_id)
+                new_reply = CommentReply(
+                    parent_id=parent_reply.id,
+                    comment_id=parent_reply.comment.id,
+                    reply_text=reply_text,
+                    author=request.user,
+                )
+                movie_id = parent_reply.comment.movie.id
+            else:
+                comment = get_object_or_404(Comment, id=comment_id)
+                new_reply = CommentReply(
+                    comment_id=comment.id,
+                    reply_text=reply_text,
+                    author=request.user,
+                )
+                movie_id = comment.movie.id
 
-        new_reply.save()
+            new_reply.save()
+
         messages.success(request, "Reply added successfully!")
         return redirect('show_movie', movie_id=movie_id)
 
@@ -251,46 +270,47 @@ def vote(request):
         if not comment_id or not vote_type:
             return JsonResponse({"success": False, "message": "Missing comment_id or vote_type"}, status=400)
 
-        if comment_id.startswith("reply-"):
-            actual_id = comment_id.replace("reply-", "")
-            target_instance = get_object_or_404(CommentReply, id=actual_id)
-            vote_filter = {"user": request.user, "reply": target_instance}
-        elif comment_id.startswith("comment-"):
-            actual_id = comment_id.replace("comment-", "")
-            target_instance = get_object_or_404(Comment, id=actual_id)
-            vote_filter = {"user": request.user, "comment": target_instance}
-        else:
-            return JsonResponse({"success": False, "message": "Invalid comment ID"}, status=400)
-
-        existing_vote = Vote.objects.filter(**vote_filter).first()
-
-        if existing_vote:
-            if existing_vote.vote_type == vote_type:
-                existing_vote.delete()
-                if vote_type == 'like':
-                    target_instance.likes_count = max(0, target_instance.likes_count - 1)
-                elif vote_type == 'dislike':
-                    target_instance.dislikes_count = max(0, target_instance.dislikes_count - 1)
+        with transaction.atomic():
+            if comment_id.startswith("reply-"):
+                actual_id = comment_id.replace("reply-", "")
+                target_instance = get_object_or_404(CommentReply, id=actual_id)
+                vote_filter = {"user": request.user, "reply": target_instance}
+            elif comment_id.startswith("comment-"):
+                actual_id = comment_id.replace("comment-", "")
+                target_instance = get_object_or_404(Comment, id=actual_id)
+                vote_filter = {"user": request.user, "comment": target_instance}
             else:
-                if existing_vote.vote_type == 'like':
-                    target_instance.likes_count = max(0, target_instance.likes_count - 1)
-                elif existing_vote.vote_type == 'dislike':
-                    target_instance.dislikes_count = max(0, target_instance.dislikes_count - 1)
+                return JsonResponse({"success": False, "message": "Invalid comment ID"}, status=400)
 
-                existing_vote.vote_type = vote_type
-                existing_vote.save()
+            existing_vote = Vote.objects.filter(**vote_filter).first()
+
+            if existing_vote:
+                if existing_vote.vote_type == vote_type:
+                    existing_vote.delete()
+                    if vote_type == 'like':
+                        target_instance.likes_count = max(0, target_instance.likes_count - 1)
+                    elif vote_type == 'dislike':
+                        target_instance.dislikes_count = max(0, target_instance.dislikes_count - 1)
+                else:
+                    if existing_vote.vote_type == 'like':
+                        target_instance.likes_count = max(0, target_instance.likes_count - 1)
+                    elif existing_vote.vote_type == 'dislike':
+                        target_instance.dislikes_count = max(0, target_instance.dislikes_count - 1)
+
+                    existing_vote.vote_type = vote_type
+                    existing_vote.save()
+                    if vote_type == 'like':
+                        target_instance.likes_count += 1
+                    elif vote_type == 'dislike':
+                        target_instance.dislikes_count += 1
+            else:
+                Vote.objects.create(vote_type=vote_type, **vote_filter)
                 if vote_type == 'like':
                     target_instance.likes_count += 1
                 elif vote_type == 'dislike':
                     target_instance.dislikes_count += 1
-        else:
-            Vote.objects.create(vote_type=vote_type, **vote_filter)
-            if vote_type == 'like':
-                target_instance.likes_count += 1
-            elif vote_type == 'dislike':
-                target_instance.dislikes_count += 1
 
-        target_instance.save()
+            target_instance.save()
 
         return JsonResponse({
             "success": True,
@@ -299,13 +319,14 @@ def vote(request):
         })
 
     except Exception as e:
-        print(f"Error in /vote endpoint: {str(e)}")
+        logger.error(f"Error in /vote endpoint: {str(e)}", exc_info=True)
         return JsonResponse({"success": False, "message": "Internal server error"}, status=500)
 
 
 def load_comments(request, movie_id):
     offset = int(request.GET.get("offset", 0))
-    comments = Comment.objects.filter(movie_id=movie_id).order_by("-timestamp")[offset:offset+5]
+    comments = Comment.objects.filter(movie_id=movie_id).select_related('author').order_by("-timestamp")[offset:offset + COMMENTS_PER_PAGE]
+
     html = render(request, "partials/comment_list.html", {
         "comments": comments,
         "user": request.user,
@@ -314,20 +335,29 @@ def load_comments(request, movie_id):
     }).content.decode("utf-8")
     return JsonResponse({"html": html})
 
+
+@login_required
 @user_passes_test(admin_or_moderator_only)
 def add_new_movie(request):
     if request.method == "POST":
         form = FindMovieForm(request.POST)
         if form.is_valid():
             movie_title = form.cleaned_data["title"]
-            response = requests.get(API_URL, params={"api_key": API_KEY, "query": movie_title})
-            data = response.json().get("results", [])
-            return render(request, "select.html", {"options": data})
+            try:
+                response = requests.get(API_URL, params={"api_key": API_KEY, "query": movie_title}, timeout=10)
+                response.raise_for_status()
+                data = response.json().get("results", [])
+                return render(request, "select.html", {"options": data})
+            except requests.RequestException as e:
+                logger.error(f"Error fetching movies from API: {str(e)}", exc_info=True)
+                messages.error(request, "Error connecting to movie database. Please try again.")
+                return render(request, "make-movie.html", {"form": form})
     else:
         form = FindMovieForm()
     return render(request, "make-movie.html", {"form": form})
 
 
+@login_required
 @user_passes_test(admin_or_moderator_only)
 def find_movie(request, movie_id):
     if not movie_id:
@@ -335,58 +365,80 @@ def find_movie(request, movie_id):
         return redirect(f"{reverse('error')}?{params}")
 
     try:
-        response = requests.get(f"{MOVIE_DB_INFO_URL}/{movie_id}", params={"api_key": API_KEY})
+        response = requests.get(
+            f"{MOVIE_DB_INFO_URL}/{movie_id}",
+            params={"api_key": API_KEY},
+            timeout=10
+        )
+        response.raise_for_status()
         data = response.json()
 
-        credits_response = requests.get(f"{MOVIE_DB_INFO_URL}/{movie_id}/credits", params={"api_key": API_KEY})
+        credits_response = requests.get(
+            f"{MOVIE_DB_INFO_URL}/{movie_id}/credits",
+            params={"api_key": API_KEY},
+            timeout=10
+        )
+        credits_response.raise_for_status()
         credits_data = credits_response.json()
 
-        director = ", ".join([crew["name"] for crew in credits_data.get("crew", []) if crew["job"] == "Director"])
-        writers = ", ".join([crew["name"] for crew in credits_data.get("crew", []) if crew["job"] in ["Writer", "Screenplay"]])
+        director = ", ".join([crew["name"] for crew in credits_data.get("crew", []) if crew.get("job") == "Director"])
+        writers = ", ".join(
+            [crew["name"] for crew in credits_data.get("crew", []) if crew.get("job") in ["Writer", "Screenplay"]])
         genres = ", ".join([g["name"] for g in data.get("genres", [])])
 
         img_url = f"{API_IMG_URL}{data['poster_path']}" if data.get("poster_path") else None
 
-        new_movie = Movie(
-            title=data["title"],
-            date=data["release_date"].split("-")[0] if data.get("release_date") else None,
-            img_url=img_url,
-            body=data.get("overview"),
-            rating=data.get("vote_average"),
-            director=director,
-            writers=writers,
-            genres=genres
-        )
-        new_movie.save()
+        with transaction.atomic():
+            new_movie = Movie(
+                title=data.get("title", "Unknown Title"),
+                date=data.get("release_date", "").split("-")[0] if data.get("release_date") else None,
+                img_url=img_url,
+                body=data.get("overview", ""),
+                rating=data.get("vote_average"),
+                director=director,
+                writers=writers,
+                genres=genres
+            )
+            new_movie.save()
 
         return redirect("edit_movie", movie_id=new_movie.id)
 
+    except requests.RequestException as e:
+        logger.error(f"Error fetching movie from API: {str(e)}", exc_info=True)
+        params = urlencode({"message": "Error connecting to movie database"})
+        return redirect(f"{reverse('error')}?{params}")
     except Exception as e:
-        print(f"Error: {e}")
-        params = urlencode({"message": "API error"})
+        # POPRAWKA: Proper logging
+        logger.error(f"Unexpected error in find_movie: {str(e)}", exc_info=True)
+        params = urlencode({"message": "An unexpected error occurred"})
         return redirect(f"{reverse('error')}?{params}")
 
 
+@login_required
 @user_passes_test(admin_or_moderator_only)
 def edit_movie(request, movie_id):
     movie = get_object_or_404(Movie, id=movie_id)
     if request.method == "POST":
         form = CreateMovieForm(request.POST, instance=movie)
         if form.is_valid():
-            form.save()
+            with transaction.atomic():
+                form.save()
             return redirect("show_movie", movie_id=movie.id)
     else:
         form = CreateMovieForm(instance=movie)
     return render(request, "make-movie.html", {"form": form, "is_edit": True, "current_user": request.user})
 
 
+@login_required
 @user_passes_test(admin_or_moderator_only)
 def delete_movie(request, movie_id):
     movie_to_delete = get_object_or_404(Movie, id=movie_id)
-    movie_to_delete.delete()
+    with transaction.atomic():
+        movie_to_delete.delete()
     return redirect("get_all_movies")
 
 
+@login_required
 @user_passes_test(admin_or_moderator_only)
 def users(request):
     all_users = User.objects.all()
@@ -396,14 +448,18 @@ def users(request):
 @login_required
 def user_profile(request, user_id):
     profile_owner = get_object_or_404(User, id=user_id)
-    comments = Comment.objects.filter(author=profile_owner)
-    replies = CommentReply.objects.filter(author=profile_owner)
+    comments = Comment.objects.filter(author=profile_owner).select_related('movie')
+    replies = CommentReply.objects.filter(author=profile_owner).select_related('comment__movie')
 
     user_comments = {}
     for comment in comments:
         movie = comment.movie
         user_comments.setdefault(movie, {"comments": [], "replies": {}})
-        user_comments[movie]["comments"].append({"id": comment.id, "text": comment.text, "author_id": comment.author.id})
+        user_comments[movie]["comments"].append({
+            "id": comment.id,
+            "text": comment.text,
+            "author_id": comment.author.id
+        })
         user_comments[movie]["replies"][comment.id] = []
 
     for reply in replies:
@@ -412,7 +468,11 @@ def user_profile(request, user_id):
         if movie:
             user_comments.setdefault(movie, {"comments": [], "replies": {}})
             user_comments[movie]["replies"].setdefault(comment.id, [])
-            user_comments[movie]["replies"][comment.id].append({"id": reply.id, "reply_text": reply.reply_text, "author_id": reply.author.id})
+            user_comments[movie]["replies"][comment.id].append({
+                "id": reply.id,
+                "reply_text": reply.reply_text,
+                "author_id": reply.author.id
+            })
 
     return render(request, "user.html", {"profile_owner": profile_owner, "user_comments": user_comments})
 
@@ -421,26 +481,108 @@ def user_profile(request, user_id):
 @login_required
 def delete_comment(request, comment_id):
     comment = Comment.objects.filter(id=comment_id).first()
-    if comment:
-        if request.user.id == comment.author.id or request.user.is_admin or request.user.is_moderator:
+    if not comment:
+        return JsonResponse({"success": False, "message": "Comment not found."}, status=404)
+
+    if not (request.user.id == comment.author.id or request.user.is_admin or request.user.is_moderator):
+        return JsonResponse({
+            "success": False,
+            "message": "You do not have permission to delete this comment."
+        }, status=403)
+
+    try:
+        with transaction.atomic():
             Vote.objects.filter(comment_id=comment_id).delete()
             CommentReply.objects.filter(comment_id=comment_id).delete()
             comment.delete()
-            return JsonResponse({"success": True})
-        return JsonResponse({"success": False, "message": "You do not have permission to delete this comment."})
-    return JsonResponse({"success": False, "message": "Comment or reply not found."})
+        return JsonResponse({"success": True})
+    except Exception as e:
+        logger.error(f"Error deleting comment {comment_id}: {str(e)}", exc_info=True)
+        return JsonResponse({"success": False, "message": "Error deleting comment"}, status=500)
 
 
 @require_POST
 @login_required
 def delete_reply(request, reply_id):
-    reply = CommentReply.objects(id=reply_id).first()
-    if reply:
-        if request.user.id == reply.author.id or request.user.is_admin:
+    reply = CommentReply.objects.filter(id=reply_id).first()
+    if not reply:
+        return JsonResponse({"success": False, "message": "Reply not found."}, status=404)
+
+    if not (request.user.id == reply.author.id or request.user.is_admin or request.user.is_moderator):
+        return JsonResponse({
+            "success": False,
+            "message": "You do not have permission to delete this reply."
+        }, status=403)
+
+    try:
+        with transaction.atomic():
             reply.delete()
-            return JsonResponse({"success": True})
-        return JsonResponse({"success": False, "message": "You do not have permission to delete this reply."})
-    return JsonResponse({"success": False, "message": "Reply not found."})
+        return JsonResponse({"success": True})
+    except Exception as e:
+        logger.error(f"Error deleting reply {reply_id}: {str(e)}", exc_info=True)
+        return JsonResponse({"success": False, "message": "Error deleting reply"}, status=500)
+
+
+@require_POST
+@login_required
+def edit_comment(request, comment_id):
+    comment = Comment.objects.filter(id=comment_id).first()
+    if not comment:
+        return JsonResponse({"success": False, "message": "Comment not found."}, status=404)
+
+    if request.user.id != comment.author.id:
+        return JsonResponse({
+            "success": False,
+            "message": "You can only edit your own comments."
+        }, status=403)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        new_text = data.get('text', '').strip()
+
+        if not new_text:
+            return JsonResponse({"success": False, "message": "Comment cannot be empty."}, status=400)
+
+        with transaction.atomic():
+            comment.text = new_text
+            comment.save()
+
+        return JsonResponse({"success": True})
+
+    except Exception as e:
+        logger.error(f"Error editing comment {comment_id}: {str(e)}", exc_info=True)
+        return JsonResponse({"success": False, "message": "Error editing comment"}, status=500)
+
+
+@require_POST
+@login_required
+def edit_reply(request, reply_id):
+    reply = CommentReply.objects.filter(id=reply_id).first()
+    if not reply:
+        return JsonResponse({"success": False, "message": "Reply not found."}, status=404)
+
+    if request.user.id != reply.author.id:
+        return JsonResponse({
+            "success": False,
+            "message": "You can only edit your own replies."
+        }, status=403)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        new_text = data.get('text', '').strip()
+
+        if not new_text:
+            return JsonResponse({"success": False, "message": "Reply cannot be empty."}, status=400)
+
+        with transaction.atomic():
+            reply.reply_text = new_text
+            reply.save()
+
+        return JsonResponse({"success": True})
+
+    except Exception as e:
+        logger.error(f"Error editing reply {reply_id}: {str(e)}", exc_info=True)
+        return JsonResponse({"success": False, "message": "Error editing reply"}, status=500)
 
 
 def about(request):
